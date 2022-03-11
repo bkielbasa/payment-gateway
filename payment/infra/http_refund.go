@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 	"payment-gateway/payment/domain"
 )
@@ -16,12 +17,14 @@ type refundRequest struct {
 func (h *httpHandler) Refund(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		log.Print(err)
 		badRequest(w, "failed to read body")
 		return
 	}
 
 	req := refundRequest{}
 	if err = json.Unmarshal(body, &req); err != nil {
+		log.Print(err)
 		badRequest(w, "failed to parse request")
 		return
 	}
@@ -30,21 +33,25 @@ func (h *httpHandler) Refund(w http.ResponseWriter, r *http.Request) {
 
 	m, err := h.app.Refund(ctx, req.UID, req.Amount)
 	if errors.Is(err, domain.ErrTransactionNotEnoughMoney) {
+		log.Print(err)
 		badRequest(w, "failed to capture: "+err.Error())
 		return
 	}
 
 	if errors.Is(err, domain.ErrTransactionNotFound) {
+		log.Print(err)
 		notFound(w, "failed to capture: "+err.Error())
 		return
 	}
 
 	if errors.Is(err, domain.ErrTransactionUnathorized) {
+		log.Print(err)
 		unauthorized(w, "failed to capture: "+err.Error())
 		return
 	}
 
 	if err != nil {
+		log.Print(err)
 		internalError(w, "failed to authorize credit card: "+err.Error())
 		return
 	}
@@ -57,6 +64,7 @@ func (h *httpHandler) Refund(w http.ResponseWriter, r *http.Request) {
 
 	body, err = json.Marshal(resp)
 	if err != nil {
+		log.Print(err)
 		internalError(w, "failed to marshal response")
 		return
 	}

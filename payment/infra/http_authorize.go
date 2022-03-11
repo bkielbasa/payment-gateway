@@ -3,6 +3,7 @@ package infra
 import (
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"payment-gateway/payment/domain"
 )
@@ -26,12 +27,14 @@ type authorizeResponse struct {
 func (h *httpHandler) Authorize(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		log.Print(err)
 		badRequest(w, "failed to read body")
 		return
 	}
 
 	req := authorizeRequest{}
 	if err = json.Unmarshal(body, &req); err != nil {
+		log.Print(err)
 		badRequest(w, "failed to parse request")
 		return
 	}
@@ -42,6 +45,7 @@ func (h *httpHandler) Authorize(w http.ResponseWriter, r *http.Request) {
 
 	uid, m, err := h.app.Authorize(ctx, cc, m)
 	if err != nil {
+		log.Print(err)
 		internalError(w, "failed to authorize credit card: "+err.Error())
 		return
 	}
@@ -54,6 +58,7 @@ func (h *httpHandler) Authorize(w http.ResponseWriter, r *http.Request) {
 
 	body, err = json.Marshal(resp)
 	if err != nil {
+		log.Print(err)
 		internalError(w, "failed to marshal response")
 		return
 	}
